@@ -1,9 +1,3 @@
-#ifdef TARGETPYTHON
-#include "Python.h"
-#include <stdint.h>
-#endif
-
-#ifndef TARGETPYTHON
 #define STRICT_R_HEADERS
 #include <stdint.h>
 #include <stdio.h>
@@ -12,7 +6,6 @@
 #include <Rinternals.h>
 #include <R_ext/Random.h>
 #include <R_ext/Rdynload.h>
-#endif
 
 /**
  * @brief Generate a single random number using the capped Tausworthe RNG
@@ -40,6 +33,7 @@
  */
 uint32_t lfsr113(uint64_t **state)
 {
+	// NOTE: This function *must* be the same as in the Python library
 	uint64_t z1, z2, z3, z4;
 	uint64_t b;
 
@@ -85,6 +79,7 @@ uint32_t lfsr113(uint64_t **state)
  */
 void lfsr113_seed(uint32_t seed, uint64_t **state)
 {
+	// NOTE: This function *must* be the same as in the Python library
 	uint64_t z1 = 2,
 		 z2 = 8,
 		 z3 = 16,
@@ -110,114 +105,6 @@ void lfsr113_seed(uint32_t seed, uint64_t **state)
 	(*state)[3] = z4;
 }
 
-#ifdef TARGETPYTHON
-/*
- *
- * Start of Python code
- *
- */
-
-static PyObject *syncrng_seed(PyObject *self, PyObject *args)
-{
-	uint32_t seed;
-	uint64_t *state = NULL;
-
-	if (!PyArg_ParseTuple(args, "k", &seed))
-		return NULL;
-
-	lfsr113_seed(seed, &state);
-
-	PyObject *pystate = Py_BuildValue("[k, k, k, k]",
-		       	state[0], state[1], state[2], state[3]);
-	free(state);
-	return pystate;
-}
-
-static PyObject *syncrng_rand(PyObject *self, PyObject *args)
-{
-	uint32_t i, value, numints;
-       	uint64_t *localstate;
-
-	PyObject *listObj;
-	PyObject *intObj;
-
-	if (!PyArg_ParseTuple(args, "O!", &PyList_Type, &listObj))
-		return NULL;
-
-	// we're just assuming you would never pass more than 4 values
-	localstate = malloc(sizeof(uint32_t)*5);
-	numints = PyList_Size(listObj);
-	for (i=0; i<numints; i++) {
-		intObj = PyList_GetItem(listObj, i);
-		value = (uint32_t) PyLong_AsLong(intObj);
-		localstate[i] = value;
-	}
-
-	uint32_t rand = lfsr113(&localstate);
-	localstate[4] = rand;
-
-	PyObject *pystate = Py_BuildValue("[k, k, k, k, k]",
-		       	localstate[0], localstate[1], localstate[2],
-			localstate[3], rand);
-	free(localstate);
-	return pystate;
-}
-
-static PyMethodDef SyncRNGMethods[] = {
-	{"seed", syncrng_seed, METH_VARARGS,
-		"Seed the RNG."},
-	{"rand", syncrng_rand, METH_VARARGS,
-		"Generate a single random integer using SyncRNG."},
-	{NULL, NULL, 0, NULL}
-};
-
-#if PY_MAJOR_VERSION >= 3
-	static struct PyModuleDef moduledef = {
-		PyModuleDef_HEAD_INIT,
-		"syncrng",
-		"Python interface to SyncRNG",
-		-1,
-		SyncRNGMethods,
-		NULL,
-		NULL,
-		NULL,
-		NULL
-	};
-#endif
-
-
-static PyObject *
-moduleinit(void)
-{
-	PyObject *m;
-
-	#if PY_MAJOR_VERSION >= 3
-	m = PyModule_Create(&moduledef);
-	#else
-	m = Py_InitModule3("syncrng", SyncRNGMethods,
-			"Python interface to SyncRNG");
-	#endif
-
-	return m;
-}
-
-#if PY_MAJOR_VERSION >= 3
-PyMODINIT_FUNC
-PyInit_syncrng(void)
-{
-	return moduleinit();
-}
-#else
-PyMODINIT_FUNC
-initsyncrng(void)
-{
-	moduleinit();
-}
-#endif
-#endif
-
-#ifndef TARGETPYTHON
-
 /*
  *
  * Start of R code
@@ -229,7 +116,7 @@ SEXP R_syncrng_rand(SEXP state);
 
 R_CallMethodDef callMethods[] = {
 	{"R_syncrng_seed", (DL_FUNC) &R_syncrng_seed, 1},
-	{"R_syncrng_rand", (DL_FUNC) &R_syncrng_seed, 1},
+	{"R_syncrng_rand", (DL_FUNC) &R_syncrng_rand, 1},
 	{NULL, NULL, 0}
 };
 R_CMethodDef cMethods[] = {
@@ -293,10 +180,9 @@ SEXP R_syncrng_rand(SEXP state)
 
 /*
  * The following code is used to make SyncRNG a real "user-defined" RNG 
- * follwing .Random.user documentation.
+ * following .Random.user documentation.
  *
  */
-
 static uint32_t global_R_seed;
 static int global_R_nseed = 1;
 static double global_R_result_uniform;
@@ -320,10 +206,12 @@ double *user_unif_rand()
 Int32 _unscramble(Int32 scram)
 {
 	int j;
+	uint32_t temp = scram;
+	uint32_t mmi = 2783094533;
 	for (j=0; j<50; j++) {
-		scram = ((scram - 1) * 2783094533);
+		temp = ((temp - 1) * mmi);
 	}
-	return scram;
+	return ((Int32) temp);
 }
 
 // note that Int32 is "unsigned int" which is not necessarily 32 bit
@@ -372,4 +260,3 @@ double *user_norm_rand()
  * End of R code
  *
  */
-#endif
