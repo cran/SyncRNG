@@ -1,10 +1,10 @@
-ad20635a6d491f255e1e685aabd0872b *DESCRIPTION
+5a93356af82d85ec3f262e0f88af4113 *DESCRIPTION
 7bd24a0f8a5e79996d6a4b66b363f38a *NAMESPACE
-921c93b68e2470b056b3dca2a0bee987 *NEWS.md
+927de8b5ab69795d02a3a4e9b4560cee *NEWS.md
 2e654a2b7ebe20f986aca3dc972d6899 *R/SyncRNG.R
-cfd61063843124813bf63ece166f8209 *R/syncrng-package.R
+e75a3a16ff76d988f58aeeb732e5675e *R/syncrng-package.R
 7b7fc185f5ad6ad6cec53e018ca19e24 *man/SyncRNG-class.Rd
-d605d748754683f0697a427edd78cfbf *man/syncrng-package.Rd
+560b6931d2b42dd7c6c390f21f16105b *man/syncrng-package.Rd
 4ad6f24f66ffe65e994cd5f373d26b9e *src/syncrng.c
 4dc3b2bd41d7403924aecbd8bb54ad75 *tests/testthat.R
 5acf9f08f2e8ec0a1131700a99f36c82 *tests/testthat/first_1000_seed_0.txt
